@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>reveal.js - The HTML Presentation Framework</title>
+
+		<meta name="description" content="Apache Storm">
+		<meta name="author" content="Lucas Vasconcelos Santana">
+		<meta name="author" content="IME-USP">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/moon.css" id="theme">
+
+		<!-- Code syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+				<section>
+					<img style="border:none; background:none; box-shadow: none;" src="img/storm_logo.png" />
+					<h5>Lucas Vasconcelos Santana</h5>
+					<p>
+						<small>IME-USP</small>
+					</p>
+				</section>
+
+				<section>
+					<h2>Apache Storm</h2>
+					<p>
+						is a free and open source distributed <span style="color: white"><strong>realtime</strong></span> computation system. Storm makes it easy to reliably process unbounded streams of data, doing for realtime processing what Hadoop did for batch processing. Storm is simple, can be used with any programming language, and is a lot of fun to use!
+					</p>
+				</section>
+
+				<section>
+					<h2>Infos</h2>
+					<ul>
+						<li>Criado por Nathan Marz @ BackType</li>
+						<li>Teve seu código aberto em 2011 após ser comprado pelo Twitter</li>
+						<li>Em 2013 virou um projeto Apache (incubating)</li>
+						<li>Apache Top-level project dia 29 de setembro de 2014</li>
+						<li>~15.000 linhas de código</li>
+						<li>Maior parte escrita em Clojure</li>
+						<li>1M de mensagens/s (100 bytes cada) por nó</li>
+					</ul>
+				</section>
+
+				<section>					
+					
+					<section>
+						<h2>Componentes</h2>
+						<ul>
+							<li class="fragment">Zookeper</li>
+							<li class="fragment">Nimbus</li>
+							<li class="fragment">Supervisor</li>
+							<li class="fragment">Topologias</li>						
+						</ul>							
+					</section>
+				</section>
+
+				<section>					
+					<section>
+					<h2>Arquitetura de um cluster Storm</h2>					
+						<p class="fragment">
+							<img style="width:70%; border:none; background:none; box-shadow: none;" src="img/storm-cluster.png" />
+						</p>
+					</section>
+				</section>
+
+				<section>
+					<h2>Tolerância a falhas</h2>
+						<ul>
+							<li class="fragment">"Stateless"</li>
+							<li class="fragment">Fail fast, auto restart</li>
+							<li class="fragment">Garante o processamento dos dados pelo menos uma vez</li>							
+						</ul>							
+					</section>
+				</section>
+
+				<section>
+					<h2>Topologia</h2>
+						<p class="fragment"><img style="border:none; background:none; box-shadow: none; vertical-align: middle; margin-right: 10px;	margin-left: 30px;" src="img/spout.png" />Spouts</p>		
+						<p class="fragment"><img style="border:none; background:none; box-shadow: none; vertical-align: middle; margin-right: 10px;	" src="img/bolt.png" />Bolts</p>
+						<p class="fragment"><img style="border:none; background:none; box-shadow: none; vertical-align: middle; margin-right: 10px;	" src="img/tuple.png" />Tuples</p>			
+					</section>
+				</section>
+
+				<section>					
+					<section>
+					<h2>Topologia</h2>					
+						<p class="fragment">
+							<img style="width:80%; border:none; background:none; box-shadow: none;" src="img/topology.png" />
+						</p>
+					</section>
+				</section>				
+
+				<section>
+					<h2>Spouts</h2>
+					<pre class="fragment"><code data-trim contenteditable>
+public static class TestWordSpout extends BaseRichSpout {
+ 
+  ...
+
+  public void nextTuple() {
+    Utils.sleep(100);
+    final String[] words = new String[] {"nathan", "mike", "jackson"};
+    final Random rand = new Random();
+    final String word = words[rand.nextInt(words.length)];
+    _collector.emit(new Values(word));
+  }
+}
+					</code></pre>				
+				</section>			
+					
+				<section>
+					<h2>Bolts</h2>
+					<pre class="fragment"><code data-trim contenteditable>
+public static class ExclamationBolt implements IRichBolt {
+
+  ...
+
+  public void execute(Tuple tuple) {
+    _collector.emit(tuple, new Values(tuple.getString(0) + "!!!"));
+    _collector.ack(tuple);
+  }
+}
+					</code></pre>				
+				</section>		
+
+				<section>
+					<h2>Executando a topologia</h2>
+					<pre class="fragment"><code data-trim contenteditable>
+TopologyBuilder builder = new TopologyBuilder();        
+builder.setSpout("words", new TestWordSpout(), 10);        
+builder.setBolt("exclaim1", new ExclamationBolt(), 3)
+        .shuffleGrouping("words");
+builder.setBolt("exclaim2", new ExclamationBolt(), 2)
+        .shuffleGrouping("exclaim1");
+					</code></pre>				
+				</section>
+
+				<section>
+					<h2>Groupings</h2>
+						<ul>
+							<li class="fragment"><strong>Shuffle grouping:</strong> distribuição aleatória das tuplas;</li>
+							<li class="fragment"><strong>Field grouping:</strong> mod hashing nas tuplas, enviando sempre para mesma task;</li>
+							<li class="fragment"><strong>All grouping:</strong> envia tupla para todas as tasks;</li>					 <li class="fragment">etc.</li>					
+						</ul>							
+					</section>
+				</section>				
+
+				<section>
+					<h2>WordCount</h2>
+					<pre class="fragment"><code data-trim contenteditable>
+TopologyBuilder builder = new TopologyBuilder();
+builder.setSpout("sentences", new KestrelSpout("kestrel.backtype.com",
+                                               22133,
+                                               "sentence_queue",
+                                               new StringScheme()));
+builder.setBolt("split", new SplitSentence(), 10)
+        .shuffleGrouping("sentences");
+builder.setBolt("count", new WordCount(), 20)
+        .fieldsGrouping("split", new Fields("word"));
+					</code></pre>				
+				</section>
+
+				<section>
+					<h2>Definindo bolts em outras linguagens</h2>
+					<pre class="fragment"><code data-trim contenteditable>
+public static class SplitSentence extends ShellBolt implements IRichBolt {
+    public SplitSentence() {
+        super("python", "splitsentence.py");
+    }
+
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        declarer.declare(new Fields("word"));
+    }
+}
+					</code></pre>				
+				</section>
+
+				<section>
+					<h2>Definindo bolts em outras linguagens</h2>
+					<pre class="fragment"><code data-trim contenteditable>
+import storm
+
+class SplitSentenceBolt(storm.BasicBolt):
+    def process(self, tup):
+        words = tup.values[0].split(" ")
+        for word in words:
+          storm.emit([word])
+
+SplitSentenceBolt().run()
+					</code></pre>				
+				</section>
+
+				<section>
+					<h2>Outros usos...</h2>
+						<ul>
+							<li class="fragment">Transacional</li>
+							<li class="fragment">Distributed RPC</li>						
+						</ul>							
+					</section>
+				</section>
+
+				<section>
+					<h2>Referências</h2>
+						<ul>
+							<p><a href="http://storm.apache.org">http://storm.apache.org</a></p>
+							<p><a href="http://www.infoq.com/presentations/Storm-Introduction">http://www.infoq.com/presentations/Storm-Introduction</a></p>
+							<p><a href="http://blog.spec-india.com/apache-storm-vs-apache-spark-an-overall-comparison">http://blog.spec-india.com/apache-storm-...-overall-comparison</a></p>					
+							<p><a href="http://nathanmarz.com/blog/history-of-apache-storm-and-lessons-learned.html">http://nathanmarz.com/blog/history-...-lessons-learned.html</a></p>
+							<p><a href="https://blogs.apache.org/foundation/entry/the_apache_software_foundation_announces64">https://blogs.apache.org/.../the_apache_software_foundation_announces64</a></p>
+						</ul>							
+					</section>
+				</section>
+
+				<section data-background="img/thankyou.gif">
+					<h2>Obrigado!</h2>
+				</section>
+
+
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, condition: function() { return !!document.querySelector( 'pre code' ); }, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
